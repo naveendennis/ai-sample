@@ -1,0 +1,5 @@
+.idea/
+*.pyc
+*~*
+*.dot
+__pycache__/*
