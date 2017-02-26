@@ -3,3 +3,4 @@
 *~*
 *.dot
 __pycache__/*
+resources/*
