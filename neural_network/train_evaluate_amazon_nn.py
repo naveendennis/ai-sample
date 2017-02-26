@@ -19,29 +19,30 @@ def tokenize(text):
     return [tok.strip().lower() for tok in REGEX.findall(text)]
 
 
-def get_features(data_list,label_train, feature_size=500):
+def get_features(data_list, label_list, feature_size=500, op_type=''):
 
     """
     Returns a feature vector after feature selection
     :param data_list: contains the review text
-    :param label_train: contains the classified review rating
+    :param label_list: contains the classified review rating
     :param feature_size: the size of the feature vector
+    :param op_type: the type of operation performed
     :return: feature vector of size feature_size
     """
 
-    r1_indices = np.where(label_train == '1')
-    r2_indices = np.where(label_train == '2')
-    r3_indices = np.where(label_train == '3')
-    r4_indices = np.where(label_train == '4')
-    r5_indices = np.where(label_train == '5')
+    r1_indices = np.where(label_list == '1')
+    r2_indices = np.where(label_list == '2')
+    r3_indices = np.where(label_list == '3')
+    r4_indices = np.where(label_list == '4')
+    r5_indices = np.where(label_list == '5')
 
     l_data_list = np.array([])
 
-    if os.path.exists(dir_path + '/../resources/amazon_datalist'):
-        with open(dir_path + '/../resources/amazon_datalist', "rb") as f:
+    if os.path.exists(dir_path + '/../resources/'+op_type+ 'amazon_datalist'):
+        with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "rb") as f:
             l_data_list = pickle.load(f)
     else:
-        with open(dir_path + '/../resources/amazon_datalist', "wb") as f:
+        with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "wb") as f:
 
             from nltk.corpus import stopwords
             for each_row in data_list:
@@ -49,7 +50,7 @@ def get_features(data_list,label_train, feature_size=500):
                 new_cell_contents = ''
 
                 for each_cell in each_row:
-                    if type(each_cell) is str:
+                    if op_type(each_cell) is str:
                         '''
                             Changing to lower case
                         '''
@@ -103,6 +104,7 @@ def get_features(data_list,label_train, feature_size=500):
     vocabulary = {**vocabulary, **new_dic}
 
     vocabulary = {each_key: index for each_key, index in zip(vocabulary.keys(), range(0, len(vocabulary.keys()))) }
+
 
     from sklearn.feature_extraction.text import CountVectorizer
     vectorizer = CountVectorizer(tokenizer=tokenize, vocabulary=vocabulary)
@@ -175,7 +177,7 @@ if __name__ == '__main__':
 
     clf.fit(p_feature_train, label_train)
 
-    test_features = get_features(feature_test, feature_size=f_size)
+    test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
 
     from sklearn.metrics import precision_score
