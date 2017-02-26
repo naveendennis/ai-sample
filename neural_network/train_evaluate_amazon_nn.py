@@ -110,7 +110,7 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
             vocabulary = {each_key: index for each_key, index in
                           zip(vocabulary.keys(), range(0, len(vocabulary.keys())))}
 
-            pickle.dump(vocabulary)
+            pickle.dump(vocabulary,f)
             print('vocabulary is created ... ')
     else:
         with open(dir_path + '/../resources/vocabulary_1000', "rb") as f:
