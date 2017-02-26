@@ -41,6 +41,7 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     if os.path.exists(dir_path + '/../resources/'+op_type+ 'amazon_datalist'):
         with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "rb") as f:
             l_data_list = pickle.load(f)
+            print('data list is loaded ...')
     else:
         with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "wb") as f:
 
@@ -50,7 +51,7 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
                 new_cell_contents = ''
 
                 for each_cell in each_row:
-                    if op_type(each_cell) is str:
+                    if type(each_cell) is str:
                         '''
                             Changing to lower case
                         '''
@@ -81,30 +82,40 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     '''
         Selecting the features
     '''
-    vocabulary = dict()
 
-    # For rating 1
-    new_dic = get_word_freq(l_data_list, r1_indices, feature_size/5)
-    vocabulary = {**vocabulary, **new_dic}
+    if op_type == '' and not os.path.exists(dir_path + '/../resources/vocabulary_1000'):
+        with open(dir_path + '/../resources/vocabulary_1000', "wb") as f:
+            vocabulary = dict()
 
-    # For rating 2
-    new_dic = get_word_freq(l_data_list, r2_indices, feature_size/5)
-    vocabulary = {**vocabulary, **new_dic}
+            # For rating 1
+            new_dic = get_word_freq(l_data_list, r1_indices, feature_size / 5)
+            vocabulary = {**vocabulary, **new_dic}
 
-    # For rating 3
-    new_dic = get_word_freq(l_data_list, r3_indices, feature_size/5)
-    vocabulary = {**vocabulary, **new_dic}
+            # For rating 2
+            new_dic = get_word_freq(l_data_list, r2_indices, feature_size / 5)
+            vocabulary = {**vocabulary, **new_dic}
 
-    # For rating 4
-    new_dic = get_word_freq(l_data_list, r4_indices, feature_size/5)
-    vocabulary = {**vocabulary, **new_dic}
+            # For rating 3
+            new_dic = get_word_freq(l_data_list, r3_indices, feature_size / 5)
+            vocabulary = {**vocabulary, **new_dic}
 
-    # For rating 5
-    new_dic = get_word_freq(l_data_list, r5_indices, feature_size/5)
-    vocabulary = {**vocabulary, **new_dic}
+            # For rating 4
+            new_dic = get_word_freq(l_data_list, r4_indices, feature_size / 5)
+            vocabulary = {**vocabulary, **new_dic}
 
-    vocabulary = {each_key: index for each_key, index in zip(vocabulary.keys(), range(0, len(vocabulary.keys()))) }
+            # For rating 5
+            new_dic = get_word_freq(l_data_list, r5_indices, feature_size / 5)
+            vocabulary = {**vocabulary, **new_dic}
 
+            vocabulary = {each_key: index for each_key, index in
+                          zip(vocabulary.keys(), range(0, len(vocabulary.keys())))}
+
+            pickle.dump(vocabulary)
+            print('vocabulary is created ... ')
+    else:
+        with open(dir_path + '/../resources/vocabulary_1000', "rb") as f:
+            vocabulary = pickle.load(f)
+            print('vocabulary is loaded...')
 
     from sklearn.feature_extraction.text import CountVectorizer
     vectorizer = CountVectorizer(tokenizer=tokenize, vocabulary=vocabulary)
@@ -115,7 +126,6 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     vectorizer = TfidfVectorizer(tokenizer=tokenize, vocabulary=vocabulary)
     weightVector = vectorizer.fit_transform(l_data_list)
     weightVector = weightVector.toarray()
-
     return features * weightVector
 
 
@@ -147,35 +157,47 @@ if __name__ == '__main__':
         feature_list , label_list, train_size=0.90)
 
     f_size = 1000
-    if not os.path.exists(dir_path+'/rec_features_1000'):
+    if not os.path.exists(dir_path+ '/../resources/rec_features_1000'):
         p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
 
-        with open(dir_path+"/rec_features_1000", "wb") as f:
+        with open(dir_path+'/../resources/rec_features_1000', "wb") as f:
             pickle.dump(p_feature_train, f)
 
-        print('pickle created...')
+        print('pickle created for features in training set...')
 
     else:
-        with open(dir_path+'/rec_features_1000','rb') as f:
+        with open(dir_path+'/../resources/rec_features_1000','rb') as f:
             p_feature_train = pickle.load(f)
 
-        print('pickle loaded...')
+        print('pickle loaded for training features...')
 
     '''
         Training the decision tree
     '''
+    if not os.path.exists(dir_path + dir_path + '/../resources/neural_network_clf'):
+        from sklearn.neural_network import MLPClassifier
 
-    from sklearn.neural_network import MLPClassifier
+        layer_size = 1000
+        clf = MLPClassifier(activation='logistic',
+                            solver='adam',
+                            max_iter=2000,
+                            hidden_layer_sizes=(layer_size, layer_size),
+                            learning_rate='constant',
+                            learning_rate_init=0.001)
 
-    layer_size = 1000
-    clf = MLPClassifier(activation='logistic',
-                        solver='adam',
-                        max_iter=2000,
-                        hidden_layer_sizes=(layer_size, layer_size),
-                        learning_rate='constant',
-                        learning_rate_init=0.001)
+        clf.fit(p_feature_train, label_train)
+        with open(dir_path + '/../resources/neural_network_clf', "wb") as f:
+            pickle.dump(clf, f)
 
-    clf.fit(p_feature_train, label_train)
+        print('pickle created for model...')
+
+    else:
+        with open(dir_path + '/../resources/neural_network_clf','rb') as f:
+            clf = pickle.load(f)
+
+        print('pickle loaded for model...')
+
+
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
