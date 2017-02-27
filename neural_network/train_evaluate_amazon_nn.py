@@ -19,6 +19,81 @@ def tokenize(text):
     return [tok.strip().lower() for tok in REGEX.findall(text)]
 
 
+def next_char(c):
+    return chr(ord(c) + 1)
+
+
+def get_label_indices(label_list):
+
+    r_indices = np.negative(np.ones(shape=(5, len(label_list))))
+    label_val = '1'
+    for index in range(0, 5):
+        r_indices[index,:] = np.where(label_list == label_val)
+        label_val = next_char(label_val)
+
+    return r_indices
+
+
+def build_vocabulary(data_list, r_indices, feature_size):
+    v_start = 0
+
+    for index in range(1, 5):
+        word_freq = get_word_freq(data_list, r_indices[index], feature_size)
+        vocabulary = [each for each in word_freq.keys()]
+        v_end = len(vocabulary)
+        for each_key in r_indices[index]:
+            if each_key not in vocabulary:
+                vocabulary.append(each_key)
+        o_v_size = v_end - v_start
+        n_v_size = len(vocabulary) - v_end
+        if n_v_size < o_v_size:
+            mod_vocabulary = vocabulary[0: v_start + n_v_size]
+            mod_vocabulary[len(mod_vocabulary): len(mod_vocabulary) + n_v_size] = vocabulary[v_end: v_end + n_v_size]
+            vocabulary = mod_vocabulary
+        v_start = v_end
+
+    return vocabulary
+
+
+def pre_process_data():
+    from nltk.corpus import stopwords
+    l_data_list = np.array([])
+    for each_row in l_data_list:
+        cell_dup = []
+        new_cell_contents = ''
+
+        for each_cell in each_row:
+            if type(each_cell) is str:
+                '''
+                    Changing to lower case
+                '''
+                words = nltk.word_tokenize(each_cell.lower())
+                words = [word.lower() for word in words if word.isalpha()]
+
+                '''
+                    Stemming the words
+                '''
+                from nltk.stem.snowball import SnowballStemmer
+                stemmer = SnowballStemmer('english')
+                words = [stemmer.stem(word) for word in words]
+
+                '''
+                    Removing stop words
+                '''
+
+                cell_contents = [word for word in words if word not in stopwords.words('english')]
+
+                for each_word in cell_contents:
+                    if each_word not in cell_dup:
+                        cell_dup.append(each_word)
+                        new_cell_contents = new_cell_contents + ' ' + each_word
+
+                new_cell_contents = new_cell_contents.strip()
+
+        l_data_list = np.append(l_data_list, np.array([new_cell_contents]), axis=0)
+    return l_data_list
+
+
 def get_features(data_list, label_list, feature_size=500, op_type=''):
 
     """
@@ -30,13 +105,9 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     :return: feature vector of size feature_size
     """
 
-    r1_indices = np.where(label_list == '1')
-    r2_indices = np.where(label_list == '2')
-    r3_indices = np.where(label_list == '3')
-    r4_indices = np.where(label_list == '4')
-    r5_indices = np.where(label_list == '5')
+    r_indices = get_label_indices(label_list)
 
-    l_data_list = np.array([])
+
 
     if os.path.exists(dir_path + '/../resources/'+op_type+ 'amazon_datalist'):
         with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "rb") as f:
@@ -44,39 +115,8 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
             print('data list is loaded ...')
     else:
         with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "wb") as f:
+            l_data_list = pre_process_data()
 
-            from nltk.corpus import stopwords
-            for each_row in data_list:
-                count = 0
-                new_cell_contents = ''
-
-                for each_cell in each_row:
-                    if type(each_cell) is str:
-                        '''
-                            Changing to lower case
-                        '''
-                        words = nltk.word_tokenize(each_cell.lower())
-                        words = [word.lower() for word in words if word.isalpha()]
-
-                        '''
-                            Stemming the words
-                        '''
-                        from nltk.stem.snowball import SnowballStemmer
-                        stemmer = SnowballStemmer('english')
-                        words = [stemmer.stem(word) for word in words]
-
-                        '''
-                            Removing stop words
-                        '''
-
-                        cell_contents = [word for word in words if word not in stopwords.words('english')]
-
-                        for each_word in cell_contents:
-                            new_cell_contents = new_cell_contents + ' ' +each_word
-
-                        new_cell_contents = new_cell_contents.strip()
-
-                l_data_list = np.append(l_data_list, np.array([new_cell_contents]), axis=0)
             pickle.dump(l_data_list, f)
 
     '''
@@ -85,31 +125,8 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
 
     if op_type == '' and not os.path.exists(dir_path + '/../resources/vocabulary_1000'):
         with open(dir_path + '/../resources/vocabulary_1000', "wb") as f:
-            vocabulary = dict()
 
-            # For rating 1
-            new_dic = get_word_freq(l_data_list, r1_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 2
-            new_dic = get_word_freq(l_data_list, r2_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 3
-            new_dic = get_word_freq(l_data_list, r3_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 4
-            new_dic = get_word_freq(l_data_list, r4_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 5
-            new_dic = get_word_freq(l_data_list, r5_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            vocabulary = {each_key: index for each_key, index in
-                          zip(vocabulary.keys(), range(0, len(vocabulary.keys())))}
-
+            vocabulary = build_vocabulary(l_data_list,r_indices,feature_size)
             pickle.dump(vocabulary,f)
             print('vocabulary is created ... ')
     else:
@@ -118,16 +135,10 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
             print('vocabulary is loaded...')
 
     from sklearn.feature_extraction.text import CountVectorizer
-    vectorizer = CountVectorizer(tokenizer=tokenize, vocabulary=vocabulary)
+    vectorizer = CountVectorizer(vocabulary=vocabulary, tokenizer=tokenize)
     features = vectorizer.fit_transform(l_data_list)
     features = features.toarray()
-
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    vectorizer = TfidfVectorizer(tokenizer=tokenize, vocabulary=vocabulary)
-    weightVector = vectorizer.fit_transform(l_data_list)
-    weightVector = weightVector.toarray()
-    return features * weightVector
-
+    return features
 
 def get_word_freq(data_list, r_indices, feature_size):
 
@@ -140,7 +151,7 @@ def get_word_freq(data_list, r_indices, feature_size):
     """
 
     r_data_list = []
-    for each_index in r_indices[0]:
+    for each_index in r_indices:
         r_data_list = r_data_list + re.findall(r'\w+', data_list[each_index])
     from collections import Counter
     t = Counter(r_data_list).most_common(int(feature_size))
@@ -150,7 +161,7 @@ def get_word_freq(data_list, r_indices, feature_size):
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_test.csv')
+    feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_train.csv')
 
     from sklearn.model_selection import train_test_split
     feature_train, feature_test, label_train, label_test = train_test_split(
