@@ -20,10 +20,21 @@ def tokenize(text):
 
 
 def next_char(c):
+    """
+    Used to obtain the next character
+    :param c: a character
+    :return: The next character of the character c
+    """
     return chr(ord(c) + 1)
 
 
 def get_label_indices(label_list):
+
+    """
+    Used to get labeled indices
+    :param label_list:
+    :return:
+    """
 
     r_indices = []
     label_val = '1'
@@ -35,23 +46,56 @@ def get_label_indices(label_list):
     return r_indices
 
 
-def build_vocabulary(data_list, r_indices, feature_size):
-    v_start = 0
+def get_possible_vocab_size(vocabulary_list):
+    """
 
-    for index in range(1, 5):
+    :param vocabulary_list: Contains a list of a list of vocabulary words.
+    :return: vocabulary_list is cleaned so that the same vocabulary words is not present in more than one category
+                and then the minimum len of the list in each category is returned
+    """
+
+    """
+    Maintaining a duplicate list
+    """
+    dup_keys = []
+    for each_list in vocabulary_list:
+        all_keys =[]
+        for each_key in each_list:
+            if each_key in all_keys:
+                dup_keys.append(each_key)
+            all_keys.append(each_key)
+
+    """
+    Removing items from the duplicate list
+    """
+    vocab = []
+    for each_list in vocabulary_list:
+        new_vocab = []
+        for each_key in each_list not in dup_keys:
+            new_vocab.append(each_key)
+        vocab.append(new_vocab)
+
+    return min([len(each_list) for each_list in vocab])
+
+
+def build_vocabulary(data_list, r_indices, feature_size):
+    """
+    Builds a vocabulary based on the indices of each catergory
+    :param data_list:
+    :param r_indices:
+    :param feature_size:
+    :return:
+    """
+    v_start = 0
+    cur_vocabulary = []
+    for index in range(0, 5):
         word_freq = get_word_freq(data_list, r_indices[index], feature_size)
-        vocabulary = [each for each in word_freq.keys()]
-        v_end = len(vocabulary)
-        for each_key in r_indices[index]:
-            if each_key not in vocabulary:
-                vocabulary.append(each_key)
-        o_v_size = v_end - v_start
-        n_v_size = len(vocabulary) - v_end
-        if n_v_size < o_v_size:
-            mod_vocabulary = vocabulary[0: v_start + n_v_size]
-            mod_vocabulary[len(mod_vocabulary): len(mod_vocabulary) + n_v_size] = vocabulary[v_end: v_end + n_v_size]
-            vocabulary = mod_vocabulary
-        v_start = v_end
+        cur_vocabulary.append([each for each in word_freq.keys()])
+
+    feature_size = get_possible_vocab_size(cur_vocabulary)
+    vocabulary = []
+    for index in range(0,5):
+        vocabulary.append(cur_vocabulary[0][0: feature_size])
 
     return vocabulary
 
@@ -107,8 +151,6 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     """
 
     r_indices = get_label_indices(label_list)
-
-
 
     if os.path.exists(dir_path + '/../resources/'+op_type+ 'amazon_datalist'):
         with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "rb") as f:
