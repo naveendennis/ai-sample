@@ -25,10 +25,11 @@ def next_char(c):
 
 def get_label_indices(label_list):
 
-    r_indices = np.negative(np.ones(shape=(5, len(label_list))))
+    r_indices = []
     label_val = '1'
     for index in range(0, 5):
-        r_indices[index,:] = np.where(label_list == label_val)
+        temp = np.where(label_list == label_val)
+        r_indices.append(temp)
         label_val = next_char(label_val)
 
     return r_indices
@@ -55,10 +56,10 @@ def build_vocabulary(data_list, r_indices, feature_size):
     return vocabulary
 
 
-def pre_process_data():
+def pre_process_data(data_list):
     from nltk.corpus import stopwords
     l_data_list = np.array([])
-    for each_row in l_data_list:
+    for each_row in data_list:
         cell_dup = []
         new_cell_contents = ''
 
@@ -115,7 +116,7 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
             print('data list is loaded ...')
     else:
         with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "wb") as f:
-            l_data_list = pre_process_data()
+            l_data_list = pre_process_data(data_list)
 
             pickle.dump(l_data_list, f)
 
@@ -140,6 +141,7 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     features = features.toarray()
     return features
 
+
 def get_word_freq(data_list, r_indices, feature_size):
 
     """
@@ -151,7 +153,7 @@ def get_word_freq(data_list, r_indices, feature_size):
     """
 
     r_data_list = []
-    for each_index in r_indices:
+    for each_index in r_indices[0]:
         r_data_list = r_data_list + re.findall(r'\w+', data_list[each_index])
     from collections import Counter
     t = Counter(r_data_list).most_common(int(feature_size))
