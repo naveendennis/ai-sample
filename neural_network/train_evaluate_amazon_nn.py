@@ -45,15 +45,7 @@ def get_label_indices(label_list):
 
     return r_indices
 
-
-def get_possible_vocab_size(vocabulary_list):
-    """
-
-    :param vocabulary_list: Contains a list of a list of vocabulary words.
-    :return: vocabulary_list is cleaned so that the same vocabulary words is not present in more than one category
-                and then the minimum len of the list in each category is returned
-    """
-
+def get_duplicate_list(vocabulary_list):
     """
     Maintaining a duplicate list
     """
@@ -64,9 +56,21 @@ def get_possible_vocab_size(vocabulary_list):
             if each_key in all_keys:
                 dup_keys.append(each_key)
             all_keys.append(each_key)
+    return dup_keys
+
+
+def get_unique_class_vocabulary(vocabulary_list):
+    """
+
+    :param vocabulary_list: Contains a list of a list of vocabulary words.
+    :return: vocabulary_list is cleaned so that the same vocabulary words is not present in more than one category
+                and then the minimum len of the list in each category is returned
+    """
+
+    dup_keys = get_duplicate_list(vocabulary_list)
 
     """
-    Removing items from the duplicate list
+    Removing duplicate items items from the duplicate list
     """
     vocab = []
     for each_list in vocabulary_list:
@@ -75,7 +79,7 @@ def get_possible_vocab_size(vocabulary_list):
             new_vocab.append(each_key)
         vocab.append(new_vocab)
 
-    return min([len(each_list) for each_list in vocab])
+    return vocab, min([len(each_list) for each_list in vocab])
 
 
 def build_vocabulary(data_list, r_indices, feature_size):
@@ -92,10 +96,10 @@ def build_vocabulary(data_list, r_indices, feature_size):
         word_freq = get_word_freq(data_list, r_indices[index], feature_size)
         cur_vocabulary.append([each for each in word_freq.keys()])
 
-    feature_size = get_possible_vocab_size(cur_vocabulary)
+    cur_vocabulary, feature_size = get_unique_class_vocabulary(cur_vocabulary)
     vocabulary = []
     for index in range(0,5):
-        vocabulary.append(cur_vocabulary[0][0: feature_size])
+        vocabulary.append(cur_vocabulary[index][0: feature_size])
 
     return vocabulary
 
