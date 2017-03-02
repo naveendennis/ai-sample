@@ -4,7 +4,8 @@ import nltk
 from utils.read_dataset import read_amazon_csv
 import re
 import pickle
-import os.path
+import os
+import errno
 
 REGEX = re.compile("([\w][\w']*\w)")
 
@@ -16,7 +17,15 @@ def tokenize(text):
     :return: a list of words in the text
     """
 
-    return [tok.strip().lower() for tok in REGEX.findall(text)]
+    return [tok.strip() for tok in REGEX.findall(text)]
+
+
+def silentremove(filename):
+    try:
+        os.remove(filename)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise
 
 
 def next_char(c):
@@ -75,8 +84,9 @@ def get_unique_class_vocabulary(vocabulary_list):
     vocab = []
     for each_list in vocabulary_list:
         new_vocab = []
-        for each_key in each_list not in dup_keys:
-            new_vocab.append(each_key)
+        for each_key in each_list:
+            if each_key not in dup_keys:
+                new_vocab.append(each_key)
         vocab.append(new_vocab)
 
     return vocab, min([len(each_list) for each_list in vocab])
@@ -90,7 +100,7 @@ def build_vocabulary(data_list, r_indices, feature_size):
     :param feature_size:
     :return:
     """
-    v_start = 0
+    
     cur_vocabulary = []
     for index in range(0, 5):
         word_freq = get_word_freq(data_list, r_indices[index], feature_size)
@@ -100,19 +110,22 @@ def build_vocabulary(data_list, r_indices, feature_size):
     vocabulary = []
     for index in range(0,5):
         vocabulary.append(cur_vocabulary[index][0: feature_size])
+    vocabulary = vocabulary[0]
 
-    return vocabulary
+    vocab_dic = {}
+    for each_value, index in zip(vocabulary, range(len(vocabulary))):
+        vocab_dic[each_value] = index
+    return vocab_dic
 
 
 def pre_process_data(data_list):
-    from nltk.corpus import stopwords
-    l_data_list = np.array([])
-    for each_row in data_list:
-        cell_dup = []
-        new_cell_contents = ''
-
-        for each_cell in each_row:
+    try:
+        from nltk.corpus import stopwords
+        l_data_list = []
+        for index in zip(range(len(data_list))):
+            each_cell = data_list[index]
             if type(each_cell) is str:
+                new_cell_contents = ''
                 '''
                     Changing to lower case
                 '''
@@ -120,26 +133,33 @@ def pre_process_data(data_list):
                 words = [word.lower() for word in words if word.isalpha()]
 
                 '''
-                    Stemming the words
-                '''
-                from nltk.stem.snowball import SnowballStemmer
-                stemmer = SnowballStemmer('english')
-                words = [stemmer.stem(word) for word in words]
-
-                '''
                     Removing stop words
                 '''
 
-                cell_contents = [word for word in words if word not in stopwords.words('english')]
+                words = [word for word in words if word not in stopwords.words('english')]
 
+                '''
+                    Lemmatize & Stemming the words
+                '''
+                from nltk.stem.snowball import SnowballStemmer
+                from nltk.stem import WordNetLemmatizer
+                stemmer = SnowballStemmer('english')
+                lematizer = WordNetLemmatizer()
+                words = [lematizer.lemmatize(word) for word in words]
+
+                cell_contents = [stemmer.stem(word) for word in words]
+
+                cell_dup = []
                 for each_word in cell_contents:
                     if each_word not in cell_dup:
                         cell_dup.append(each_word)
                         new_cell_contents = new_cell_contents + ' ' + each_word
-
                 new_cell_contents = new_cell_contents.strip()
-
-        l_data_list = np.append(l_data_list, np.array([new_cell_contents]), axis=0)
+                l_data_list.append(new_cell_contents)
+            else:
+                l_data_list.append(' ')
+    except Exception as e:
+        print(e.with_traceback())
     return l_data_list
 
 
@@ -156,31 +176,41 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
 
     r_indices = get_label_indices(label_list)
 
-    if os.path.exists(dir_path + '/../resources/'+op_type+ 'amazon_datalist'):
-        with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "rb") as f:
-            l_data_list = pickle.load(f)
-            print('data list is loaded ...')
-    else:
-        with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "wb") as f:
-            l_data_list = pre_process_data(data_list)
-
-            pickle.dump(l_data_list, f)
+    try:
+        filename = dir_path + '/../resources/'+op_type+ 'amazon_datalist'
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                l_data_list = pickle.load(f)
+                print('data list is loaded ...')
+        else:
+            with open(filename, "wb") as f:
+                l_data_list = pre_process_data(data_list)
+                pickle.dump(l_data_list, f)
+                print('data list is created...')
+    except Exception as e:
+        print(e.with_traceback())
+        silentremove(filename)
+        exit(0)
 
     '''
         Selecting the features
     '''
+    try:
+        filename = dir_path + '/../resources/vocabulary_1000'
+        if op_type == '' and not os.path.exists(filename):
+            with open(filename, "wb") as f:
 
-    if op_type == '' and not os.path.exists(dir_path + '/../resources/vocabulary_1000'):
-        with open(dir_path + '/../resources/vocabulary_1000', "wb") as f:
-
-            vocabulary = build_vocabulary(l_data_list,r_indices,feature_size)
-            pickle.dump(vocabulary,f)
-            print('vocabulary is created ... ')
-    else:
-        with open(dir_path + '/../resources/vocabulary_1000', "rb") as f:
-            vocabulary = pickle.load(f)
-            print('vocabulary is loaded...')
-
+                vocabulary = build_vocabulary(l_data_list,r_indices,feature_size)
+                pickle.dump(vocabulary,f)
+                print('vocabulary is created ... ')
+        else:
+            with open(filename, "rb") as f:
+                vocabulary = pickle.load(f)
+                print('vocabulary is loaded...')
+    except Exception as e:
+        print(e.with_traceback())
+        silentremove(filename)
+        exit(0)
     from sklearn.feature_extraction.text import CountVectorizer
     vectorizer = CountVectorizer(vocabulary=vocabulary, tokenizer=tokenize)
     features = vectorizer.fit_transform(l_data_list)
@@ -206,6 +236,41 @@ def get_word_freq(data_list, r_indices, feature_size):
     vocabulary = dict((x, y) for x, y in t)
     return vocabulary
 
+
+def get_neural_network(feature_vector, label_train, layer_size=(1000, 1000)):
+    """
+
+    :param feature_vector:
+    :param label_train:
+    :param layer_size:
+    :return:
+    """
+    filename = dir_path + '/../resources/neural_network_clf'
+    if not os.path.exists(filename):
+        from sklearn.neural_network import MLPClassifier
+
+        clf = MLPClassifier(activation='logistic',
+                            solver='adam',
+                            max_iter=2000,
+                            hidden_layer_sizes=layer_size,
+                            learning_rate='constant',
+                            learning_rate_init=0.001)
+
+        clf.fit(feature_vector, label_train)
+        with open(filename, "wb") as f:
+            pickle.dump(clf, f)
+
+        print('pickle created for model...')
+
+    else:
+        with open(filename,'rb') as f:
+            clf = pickle.load(f)
+
+        print('pickle loaded for model...')
+    return clf
+
+
+
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -216,47 +281,26 @@ if __name__ == '__main__':
         feature_list , label_list, train_size=0.90)
 
     f_size = 1000
-    if not os.path.exists(dir_path+ '/../resources/rec_features_1000'):
-        p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
+    filename = dir_path+ '/../resources/rec_features_1000'
+    try:
+        if not os.path.exists(filename):
+            p_feature_train = get_features(feature_train[:,1],label_train, feature_size=f_size)
 
-        with open(dir_path+'/../resources/rec_features_1000', "wb") as f:
-            pickle.dump(p_feature_train, f)
+            with open(filename, "wb") as f:
+                pickle.dump(p_feature_train, f)
 
-        print('pickle created for features in training set...')
+            print('pickle created for features in training set...')
 
-    else:
-        with open(dir_path+'/../resources/rec_features_1000','rb') as f:
-            p_feature_train = pickle.load(f)
+        else:
+            with open(filename,'rb') as f:
+                p_feature_train = pickle.load(f)
+            print('pickle loaded for training features...')
+    except Exception as e:
+        print(e.with_traceback())
+        silentremove(filename)
+        exit(0)
 
-        print('pickle loaded for training features...')
-
-    '''
-        Training the decision tree
-    '''
-    if not os.path.exists(dir_path + dir_path + '/../resources/neural_network_clf'):
-        from sklearn.neural_network import MLPClassifier
-
-        layer_size = 1000
-        clf = MLPClassifier(activation='logistic',
-                            solver='adam',
-                            max_iter=2000,
-                            hidden_layer_sizes=(layer_size, layer_size),
-                            learning_rate='constant',
-                            learning_rate_init=0.001)
-
-        clf.fit(p_feature_train, label_train)
-        with open(dir_path + '/../resources/neural_network_clf', "wb") as f:
-            pickle.dump(clf, f)
-
-        print('pickle created for model...')
-
-    else:
-        with open(dir_path + '/../resources/neural_network_clf','rb') as f:
-            clf = pickle.load(f)
-
-        print('pickle loaded for model...')
-
-
+    clf = get_neural_network(p_feature_train, label_train)
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
