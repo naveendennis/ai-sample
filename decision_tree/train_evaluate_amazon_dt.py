@@ -4,7 +4,8 @@ import nltk
 from utils.read_dataset import read_amazon_csv
 import re
 import pickle
-import os.path
+import os
+import errno
 
 REGEX = re.compile("([\w][\w']*\w)")
 
@@ -16,7 +17,150 @@ def tokenize(text):
     :return: a list of words in the text
     """
 
-    return [tok.strip().lower() for tok in REGEX.findall(text)]
+    return [tok.strip() for tok in REGEX.findall(text)]
+
+
+def silentremove(filename):
+    try:
+        os.remove(filename)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise
+
+
+def next_char(c):
+    """
+    Used to obtain the next character
+    :param c: a character
+    :return: The next character of the character c
+    """
+    return chr(ord(c) + 1)
+
+
+def get_label_indices(label_list):
+
+    """
+    Used to get labeled indices
+    :param label_list:
+    :return:
+    """
+
+    r_indices = []
+    label_val = '1'
+    for index in range(0, 5):
+        temp = np.where(label_list == label_val)
+        r_indices.append(temp)
+        label_val = next_char(label_val)
+
+    return r_indices
+
+def get_duplicate_list(vocabulary_list):
+    """
+    Maintaining a duplicate list
+    """
+    dup_keys = []
+    for each_list in vocabulary_list:
+        all_keys =[]
+        for each_key in each_list:
+            if each_key in all_keys:
+                dup_keys.append(each_key)
+            all_keys.append(each_key)
+    return dup_keys
+
+
+def get_unique_class_vocabulary(vocabulary_list):
+    """
+
+    :param vocabulary_list: Contains a list of a list of vocabulary words.
+    :return: vocabulary_list is cleaned so that the same vocabulary words is not present in more than one category
+                and then the minimum len of the list in each category is returned
+    """
+
+    dup_keys = get_duplicate_list(vocabulary_list)
+
+    """
+    Removing duplicate items items from the duplicate list
+    """
+    vocab = []
+    for each_list in vocabulary_list:
+        new_vocab = []
+        for each_key in each_list:
+            if each_key not in dup_keys:
+                new_vocab.append(each_key)
+        vocab.append(new_vocab)
+
+    return vocab, min([len(each_list) for each_list in vocab])
+
+
+def build_vocabulary(data_list, r_indices, feature_size):
+    """
+    Builds a vocabulary based on the indices of each catergory
+    :param data_list:
+    :param r_indices:
+    :param feature_size:
+    :return:
+    """
+
+    cur_vocabulary = []
+    for index in range(0, 5):
+        word_freq = get_word_freq(data_list, r_indices[index], feature_size)
+        cur_vocabulary.append([each for each in word_freq.keys()])
+
+    cur_vocabulary, feature_size = get_unique_class_vocabulary(cur_vocabulary)
+    vocabulary = []
+    for index in range(0,5):
+        vocabulary.append(cur_vocabulary[index][0: feature_size])
+    vocabulary = vocabulary[0]
+
+    vocab_dic = {}
+    for each_value, index in zip(vocabulary, range(len(vocabulary))):
+        vocab_dic[each_value] = index
+    return vocab_dic
+
+
+def pre_process_data(data_list):
+    try:
+        from nltk.corpus import stopwords
+        l_data_list = []
+        for index in zip(range(len(data_list))):
+            each_cell = data_list[index]
+            if type(each_cell) is str:
+                new_cell_contents = ''
+                '''
+                    Changing to lower case
+                '''
+                words = nltk.word_tokenize(each_cell.lower())
+                words = [word.lower() for word in words if word.isalpha()]
+
+                '''
+                    Removing stop words
+                '''
+
+                words = [word for word in words if word not in stopwords.words('english')]
+
+                '''
+                    Lemmatize & Stemming the words
+                '''
+                from nltk.stem.snowball import SnowballStemmer
+                from nltk.stem import WordNetLemmatizer
+                stemmer = SnowballStemmer('english')
+                lematizer = WordNetLemmatizer()
+                words = [lematizer.lemmatize(word) for word in words]
+
+                cell_contents = [stemmer.stem(word) for word in words]
+
+                cell_dup = []
+                for each_word in cell_contents:
+                    if each_word not in cell_dup:
+                        cell_dup.append(each_word)
+                        new_cell_contents = new_cell_contents + ' ' + each_word
+                new_cell_contents = new_cell_contents.strip()
+                l_data_list.append(new_cell_contents)
+            else:
+                l_data_list.append(' ')
+    except Exception as e:
+        print(e.with_traceback())
+    return l_data_list
 
 
 def get_features(data_list, label_list, feature_size=500, op_type=''):
@@ -30,108 +174,48 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
     :return: feature vector of size feature_size
     """
 
-    r1_indices = np.where(label_list == '1')
-    r2_indices = np.where(label_list == '2')
-    r3_indices = np.where(label_list == '3')
-    r4_indices = np.where(label_list == '4')
-    r5_indices = np.where(label_list == '5')
+    r_indices = get_label_indices(label_list)
 
-    l_data_list = np.array([])
-
-    if os.path.exists(dir_path + '/../resources/'+op_type+ 'amazon_datalist'):
-        with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "rb") as f:
-            l_data_list = pickle.load(f)
-            print('data list is loaded ...')
-    else:
-        with open(dir_path + '/../resources/'+op_type+ 'amazon_datalist', "wb") as f:
-
-            from nltk.corpus import stopwords
-            for each_row in data_list:
-
-                new_cell_contents = ''
-                cell_dup = []
-
-                for each_cell in each_row:
-                    if type(each_cell) is str:
-                        '''
-                            Changing to lower case
-                        '''
-                        words = nltk.word_tokenize(each_cell.lower())
-                        words = [word.lower() for word in words if word.isalpha()]
-
-                        '''
-                            Stemming the words
-                        '''
-                        from nltk.stem.snowball import SnowballStemmer
-                        stemmer = SnowballStemmer('english')
-                        words = [stemmer.stem(word) for word in words]
-
-                        '''
-                            Removing stop words
-                        '''
-
-                        cell_contents = [word for word in words if word not in stopwords.words('english')]
-
-                        for each_word in cell_contents:
-                            if each_word not in cell_dup:
-                                cell_dup.append(each_word)
-                                new_cell_contents = new_cell_contents + ' ' +each_word
-
-                        new_cell_contents = new_cell_contents.strip()
-
-                l_data_list = np.append(l_data_list, np.array([new_cell_contents]), axis=0)
-            pickle.dump(l_data_list, f)
+    try:
+        filename = dir_path + '/../resources/'+op_type+ 'amazon_datalist'
+        if os.path.exists(filename):
+            with open(filename, "rb") as f:
+                l_data_list = pickle.load(f)
+                print('data list is loaded ...')
+        else:
+            with open(filename, "wb") as f:
+                l_data_list = pre_process_data(data_list)
+                pickle.dump(l_data_list, f)
+                print('data list is created...')
+    except Exception as e:
+        print(e.with_traceback())
+        silentremove(filename)
+        exit(0)
 
     '''
         Selecting the features
     '''
+    try:
+        filename = dir_path + '/../resources/vocabulary_1000'
+        if op_type == '' and not os.path.exists(filename):
+            with open(filename, "wb") as f:
 
-    if op_type == '' and not os.path.exists(dir_path + '/../resources/vocabulary_1000'):
-        with open(dir_path + '/../resources/vocabulary_1000', "wb") as f:
-            vocabulary = dict()
-
-            # For rating 1
-            new_dic = get_word_freq(l_data_list, r1_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 2
-            new_dic = get_word_freq(l_data_list, r2_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 3
-            new_dic = get_word_freq(l_data_list, r3_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 4
-            new_dic = get_word_freq(l_data_list, r4_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            # For rating 5
-            new_dic = get_word_freq(l_data_list, r5_indices, feature_size / 5)
-            vocabulary = {**vocabulary, **new_dic}
-
-            vocabulary = {each_key: index for each_key, index in
-                          zip(vocabulary.keys(), range(0, len(vocabulary.keys())))}
-
-            pickle.dump(vocabulary,f)
-            print('vocabulary is created ... ')
-    else:
-        with open(dir_path + '/../resources/vocabulary_1000', "rb") as f:
-            vocabulary = pickle.load(f)
-            print('vocabulary is loaded...')
-
+                vocabulary = build_vocabulary(l_data_list,r_indices,feature_size)
+                pickle.dump(vocabulary,f)
+                print('vocabulary is created ... ')
+        else:
+            with open(filename, "rb") as f:
+                vocabulary = pickle.load(f)
+                print('vocabulary is loaded...')
+    except Exception as e:
+        print(e.with_traceback())
+        silentremove(filename)
+        exit(0)
     from sklearn.feature_extraction.text import CountVectorizer
-    vectorizer = CountVectorizer(tokenizer=tokenize, vocabulary=vocabulary)
-    vectorizer._validate_vocabulary()
-    print(vectorizer.get_feature_names())
+    vectorizer = CountVectorizer(vocabulary=vocabulary, tokenizer=tokenize)
     features = vectorizer.fit_transform(l_data_list)
     features = features.toarray()
-
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    vectorizer = TfidfVectorizer(vocabulary=vocabulary, min_df=0.4, max_df=0.9)
-    weightVector = vectorizer.fit_transform(features)
-    weightVector = weightVector.toarray()
-    return weightVector
+    return features
 
 
 def get_word_freq(data_list, r_indices, feature_size):
@@ -152,48 +236,66 @@ def get_word_freq(data_list, r_indices, feature_size):
     vocabulary = dict((x, y) for x, y in t)
     return vocabulary
 
-if __name__ == '__main__':
-    dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_test.csv')
+def get_decision_tree(feature_vector, label_train):
+    """
 
-    from sklearn.model_selection import train_test_split
-    feature_train, feature_test, label_train, label_test = train_test_split(
-        feature_list , label_list, train_size=0.90)
+    :param feature_vector:
+    :param label_train:
+    :param layer_size:
+    :return:
+    """
+    filename = dir_path + '/../resources/decision_tree_clf'
+    if not os.path.exists(filename):
 
-    f_size = 1000
-    if not os.path.exists(dir_path+ '/../resources/rec_features_1000'):
-        p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
-
-        with open(dir_path+'/../resources/rec_features_1000', "wb") as f:
-            pickle.dump(p_feature_train, f)
-
-        print('pickle created for features in training set...')
-
-    else:
-        with open(dir_path+'/../resources/rec_features_1000','rb') as f:
-            p_feature_train = pickle.load(f)
-
-        print('pickle loaded for training features...')
-
-    '''
-        Training the decision tree
-    '''
-    if not os.path.exists(dir_path + dir_path + '/../resources/decision_tree_clf'):
         from sklearn.tree import DecisionTreeClassifier
         clf = DecisionTreeClassifier(min_samples_split=100, max_depth=100)
 
         clf.fit(p_feature_train, label_train)
-        with open(dir_path + '/../resources/decision_tree_clf', "wb") as f:
+        with open(filename, "wb") as f:
             pickle.dump(clf, f)
 
         print('pickle created for model...')
 
     else:
-        with open(dir_path + '/../resources/decision_tree_clf','rb') as f:
+        with open(filename,'rb') as f:
             clf = pickle.load(f)
 
         print('pickle loaded for model...')
+    return clf
+
+
+
+if __name__ == '__main__':
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+
+    feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_train.csv')
+
+    from sklearn.model_selection import train_test_split
+    feature_train, feature_test, label_train, label_test = train_test_split(
+        feature_list , label_list, train_size=0.90, random_state=True)
+
+    f_size = 1000
+    filename = dir_path+ '/../resources/rec_features_1000'
+    try:
+        if not os.path.exists(filename):
+            p_feature_train = get_features(feature_train[:,1],label_train, feature_size=f_size)
+
+            with open(filename, "wb") as f:
+                pickle.dump(p_feature_train, f)
+
+            print('pickle created for features in training set...')
+
+        else:
+            with open(filename,'rb') as f:
+                p_feature_train = pickle.load(f)
+            print('pickle loaded for training features...')
+    except Exception as e:
+        print(e.with_traceback())
+        silentremove(filename)
+        exit(0)
+
+    clf = get_decision_tree(p_feature_train, label_train)
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)

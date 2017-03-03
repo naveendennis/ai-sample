@@ -100,7 +100,7 @@ def build_vocabulary(data_list, r_indices, feature_size):
     :param feature_size:
     :return:
     """
-    
+
     cur_vocabulary = []
     for index in range(0, 5):
         word_freq = get_word_freq(data_list, r_indices[index], feature_size)
@@ -278,7 +278,7 @@ if __name__ == '__main__':
 
     from sklearn.model_selection import train_test_split
     feature_train, feature_test, label_train, label_test = train_test_split(
-        feature_list , label_list, train_size=0.90)
+        feature_list , label_list, train_size=0.90, random_state=True)
 
     f_size = 1000
     filename = dir_path+ '/../resources/rec_features_1000'
@@ -300,7 +300,7 @@ if __name__ == '__main__':
         silentremove(filename)
         exit(0)
 
-    clf = get_neural_network(p_feature_train, label_train)
+    clf = get_neural_network(p_feature_train, label_train, layer_size=1000)
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
@@ -317,3 +317,4 @@ if __name__ == '__main__':
     accuracy = accuracy_score(label_test, label_predict)
 
     print(str(precision) + '\t' + str(recall) + '\t' + str(f1) + '\t' + str(accuracy))
+
