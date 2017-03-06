@@ -1,42 +1,25 @@
 from utils.read_dataset import read_amazon_csv
 from utils.amazon_utils import *
 
-def get_neural_network(feature_vector, label_train, layer_size=(1000, 1000), learning_rate_init=0.001, learning_rate='constant'):
 
-    """
-
-    :param feature_vector:
-    :param label_train:
-    :param layer_size:
-    :param learning_rate_init:
-    :param learning_rate:
-    :return:
-    """
-    filename = dir_path + '/../resources/neural_network_clf'
+def get_adaboost_classifier():
+    filename = dir_path + '/../resources/adaboost_clf'
     if not os.path.exists(filename):
         from sklearn.neural_network import MLPClassifier
+        from sklearn.ensemble import AdaBoostClassifier
 
-        clf = MLPClassifier(activation='relu',
-                            solver='adam',
-                            max_iter=2000,
-                            hidden_layer_sizes=layer_size,
-                            learning_rate=learning_rate,
-                            learning_rate_init=learning_rate_init)
-
-        clf.fit(feature_vector, label_train)
+        clf = AdaBoostClassifier(base_estimator=MLPClassifier)
         with open(filename, "wb") as f:
             pickle.dump(clf, f)
 
         print('pickle created for model...')
 
     else:
-        with open(filename,'rb') as f:
+        with open(filename, 'rb') as f:
             clf = pickle.load(f)
 
         print('pickle loaded for model...')
     return clf
-
-
 
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -67,7 +50,8 @@ if __name__ == '__main__':
         silentremove(filename)
         exit(0)
 
-    clf = get_neural_network(p_feature_train, label_train, layer_size=1000)
+    filename = dir_path + '/../resources/adaboost_clf'
+    clf = get_adaboost_classifier()
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
