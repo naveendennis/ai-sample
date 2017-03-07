@@ -122,7 +122,7 @@ def pre_process_data(data_list):
     try:
         from nltk.corpus import stopwords
         l_data_list = []
-        for index in zip(range(len(data_list))):
+        for index in range(len(data_list)):
             each_cell = data_list[index]
             if type(each_cell) is str:
                 new_cell_contents = ''
@@ -239,6 +239,7 @@ def get_word_freq(data_list, r_indices, feature_size):
 
 def train_test_split(feature_list, label_list):
     r_indices = get_label_indices(label_list)
+    feature_list = feature_list[:,1]
     # class_size = min([len(each) for each in r_indices])
     class_size = 9000
     label_train = []

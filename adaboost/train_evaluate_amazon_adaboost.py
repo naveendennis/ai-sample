@@ -57,7 +57,7 @@ if __name__ == '__main__':
     filename = dir_path+ '/../resources/rec_features_1000'
     try:
         if not os.path.exists(filename):
-            p_feature_train = get_features(feature_train[:,1],label_train, feature_size=f_size)
+            p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
 
             with open(filename, "wb") as f:
                 pickle.dump(p_feature_train, f)
