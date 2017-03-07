@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     from sklearn.model_selection import train_test_split
     feature_train, feature_test, label_train, label_test = train_test_split(
-        feature_list , label_list, train_size=0.60)
+        feature_list , label_list)
 
     f_size = 100
     filename = dir_path+ '/../resources/rec_features_1000'

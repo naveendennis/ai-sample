@@ -49,7 +49,7 @@ def get_label_indices(label_list):
     label_val = '1'
     for index in range(0, 5):
         temp = np.where(label_list == label_val)
-        r_indices.append(temp)
+        r_indices.append(temp[0])
         label_val = next_char(label_val)
 
     return r_indices
@@ -229,9 +229,34 @@ def get_word_freq(data_list, r_indices, feature_size):
     """
 
     r_data_list = []
-    for each_index in r_indices[0]:
+    for each_index in r_indices:
         r_data_list = r_data_list + re.findall(r'\w+', data_list[each_index])
     from collections import Counter
     t = Counter(r_data_list).most_common(int(feature_size))
     vocabulary = dict((x, y) for x, y in t)
     return vocabulary
+
+
+def train_test_split(feature_list, label_list):
+    r_indices = get_label_indices(label_list)
+    # class_size = min([len(each) for each in r_indices])
+    class_size = 9000
+    label_train = []
+    label_test = []
+    feature_train = []
+    feature_test = []
+    train_indices = []
+    for each_class in r_indices:
+        for index in range(class_size):
+            train_indices.append(each_class[index])
+
+    for index in train_indices:
+        label_train.append(label_list[index])
+        feature_train.append(feature_list[index])
+
+    other_indices = [each for each in range(len(label_list)) if each not in train_indices]
+    for index in other_indices:
+        label_test.append(label_list[index])
+        feature_test.append(feature_list[index])
+
+    return feature_train, feature_test, label_train, label_test
