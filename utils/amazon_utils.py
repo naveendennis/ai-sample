@@ -48,8 +48,8 @@ def get_label_indices(label_list):
     r_indices = []
     label_val = '1'
     for index in range(0, 5):
-        temp = np.where(label_list == label_val)
-        r_indices.append(temp[0])
+        temp = [each_val[0] for each_val in enumerate(label_list) if each_val[1] == label_val]
+        r_indices.append(temp)
         label_val = next_char(label_val)
 
     return r_indices
@@ -109,8 +109,10 @@ def build_vocabulary(data_list, r_indices, feature_size):
     cur_vocabulary, feature_size = get_unique_class_vocabulary(cur_vocabulary)
     vocabulary = []
     for index in range(0,5):
-        vocabulary.append(cur_vocabulary[index][0: feature_size])
-    vocabulary = vocabulary[0]
+        tmp_vocab = cur_vocabulary[index][0: feature_size]
+        for each in tmp_vocab :
+            if each not in vocabulary:
+                vocabulary.append(each)
 
     vocab_dic = {}
     for each_value, index in zip(vocabulary, range(len(vocabulary))):

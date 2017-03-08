@@ -1,6 +1,7 @@
 from utils.read_dataset import read_amazon_csv
 from utils.amazon_utils import *
 
+
 def get_neural_network(feature_vector, label_train, layer_size=(1000, 1000), learning_rate_init=0.001, learning_rate='constant'):
 
     """
@@ -43,15 +44,37 @@ if __name__ == '__main__':
 
     feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_train.csv')
 
-    from sklearn.model_selection import train_test_split
-    feature_train, feature_test, label_train, label_test = train_test_split(
-        feature_list , label_list)
+    filename = dir_path + '/../resources/raw_features'
+    try:
+        if not os.path.exists(filename):
+            feature_train, feature_test, label_train, label_test = train_test_split(
+                feature_list, label_list)
+            with open(filename, "wb") as f:
+                pickle.dump(feature_train, f)
+                pickle.dump(feature_test, f)
+                pickle.dump(label_train, f)
+                pickle.dump(label_test,f)
+
+            print('pickle created for raw features...')
+
+        else:
+            with open(filename, 'rb') as f:
+                feature_train = pickle.load(f)
+                feature_test = pickle.load(f)
+                label_train = pickle.load(f)
+                label_test = pickle.load(f)
+            print('pickle loaded for raw features...')
+
+    except Exception as e:
+        print(e)
+        silentremove(filename)
+        exit(0)
 
     f_size = 100
     filename = dir_path+ '/../resources/rec_features_1000'
     try:
         if not os.path.exists(filename):
-            p_feature_train = get_features(feature_train[:,1],label_train, feature_size=f_size)
+            p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
 
             with open(filename, "wb") as f:
                 pickle.dump(p_feature_train, f)
@@ -67,7 +90,7 @@ if __name__ == '__main__':
         silentremove(filename)
         exit(0)
 
-    clf = get_neural_network(p_feature_train, label_train, layer_size=1000)
+    clf = get_neural_network(p_feature_train, label_train)
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
@@ -84,4 +107,3 @@ if __name__ == '__main__':
     accuracy = accuracy_score(label_test, label_predict)
 
     print(str(precision) + '\t' + str(recall) + '\t' + str(f1) + '\t' + str(accuracy))
-

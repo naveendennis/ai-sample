@@ -73,7 +73,6 @@ if __name__ == '__main__':
         silentremove(filename)
         exit(0)
 
-    filename = dir_path + '/../resources/adaboost_clf'
     clf = get_adaboost_classifier(p_feature_train, label_train)
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
