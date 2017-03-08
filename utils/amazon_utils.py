@@ -263,3 +263,15 @@ def train_test_split(feature_list, label_list):
         feature_test.append(feature_list[index])
 
     return feature_train, feature_test, label_train, label_test
+
+def shuffle(feature, label):
+    size = len(label)
+    import random as rand
+    indices = [x for x in range(size)]
+    rand.shuffle(indices)
+    new_feature=[]
+    new_label = []
+    for index in indices:
+        new_feature.append(feature[index])
+        new_label.append(label[index])
+    return feature, label
