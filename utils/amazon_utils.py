@@ -1,5 +1,3 @@
-
-import numpy as np
 import nltk
 import re
 import pickle
@@ -53,6 +51,7 @@ def get_label_indices(label_list):
         label_val = next_char(label_val)
 
     return r_indices
+
 
 def get_duplicate_list(vocabulary_list):
     """
@@ -263,6 +262,7 @@ def train_test_split(feature_list, label_list):
         feature_test.append(feature_list[index])
 
     return feature_train, feature_test, label_train, label_test
+
 
 def shuffle(feature, label):
     size = len(label)
