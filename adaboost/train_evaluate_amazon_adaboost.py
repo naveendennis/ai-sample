@@ -7,8 +7,8 @@ def get_adaboost_classifier(feature_vector, label_vector):
     if not os.path.exists(filename):
 
         from sklearn.ensemble import AdaBoostClassifier
-
-        clf = AdaBoostClassifier()
+        from sklearn.linear_model import Perceptron
+        clf = AdaBoostClassifier(n_estimators=10000, algorithm='SAMME.R', base_estimator=None)
         clf.fit(feature_vector, label_vector)
         with open(filename, "wb") as f:
             pickle.dump(clf, f)
@@ -32,8 +32,7 @@ if __name__ == '__main__':
         if not os.path.exists(filename):
             feature_train, feature_test, label_train, label_test = train_test_split(
                 feature_list, label_list)
-            feature_train, label_train = shuffle(feature_train, label_train)
-            feature_test, label_test = shuffle(feature_test, label_test)
+
             with open(filename, "wb") as f:
                 pickle.dump(feature_train, f)
                 pickle.dump(feature_test, f)
