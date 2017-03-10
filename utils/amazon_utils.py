@@ -241,8 +241,9 @@ def get_word_freq(data_list, r_indices, feature_size):
 def train_test_split(feature_list, label_list):
     r_indices = get_label_indices(label_list)
     feature_list = feature_list[:,1]
-    # class_size = min([len(each) for each in r_indices])
-    class_size = 9000
+    from math import ceil
+    class_size = ceil(min([len(each) for each in r_indices]) * 90)
+    # class_size = 9000
     label_train = []
     label_test = []
     feature_train = []
@@ -260,7 +261,8 @@ def train_test_split(feature_list, label_list):
     for index in other_indices:
         label_test.append(label_list[index])
         feature_test.append(feature_list[index])
-
+    feature_train, label_train = shuffle(feature_train, label_train)
+    feature_test, label_test = shuffle(feature_test, label_test)
     return feature_train, feature_test, label_train, label_test
 
 
