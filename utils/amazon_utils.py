@@ -242,7 +242,7 @@ def train_test_split(feature_list, label_list):
     r_indices = get_label_indices(label_list)
     feature_list = feature_list[:,1]
     from math import ceil
-    class_size = ceil(min([len(each) for each in r_indices]) * 90)
+    class_size = ceil(min([len(each) for each in r_indices]) * 0.90)
     # class_size = 9000
     label_train = []
     label_test = []

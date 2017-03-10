@@ -7,7 +7,6 @@ def get_adaboost_classifier(feature_vector, label_vector):
     if not os.path.exists(filename):
 
         from sklearn.ensemble import AdaBoostClassifier
-        from sklearn.linear_model import Perceptron
         clf = AdaBoostClassifier(n_estimators=10000, algorithm='SAMME.R', base_estimator=None)
         clf.fit(feature_vector, label_vector)
         with open(filename, "wb") as f:
