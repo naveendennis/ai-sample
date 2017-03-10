@@ -37,10 +37,12 @@ if __name__ == '__main__':
     from sklearn.model_selection import train_test_split
     feature_train, feature_test, label_train, label_test = train_test_split(
         feature_list , label_list, train_size=0.95)
-    from sklearn.ensemble import AdaBoostClassifier
     train_features = np.array([[]])
     from sklearn.neighbors import KNeighborsClassifier
-    clf = KNeighborsClassifier(n_neighbors=13, weights='distance')
+    # from sklearn.neighbors import NearestNeighbors
+    clf = KNeighborsClassifier(n_neighbors=7, weights='distance', algorithm='auto',p=1)
+    # clf = NearestNeighbors()
+    # graph = clf.kneighbors_graph(n_neighbors=7,X=feature_train)
     clf.fit(feature_train, label_train)
     label_predict = clf.predict(feature_test)
     from sklearn.metrics import precision_score
