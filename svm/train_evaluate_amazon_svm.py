@@ -13,14 +13,10 @@ def get_svm(feature_vector, label_train, eachC):
     :param learning_rate:
     :return:
     """
-    filename = dir_path + '/../resources/svm_clf_grid'+str(eachC)
+    filename = dir_path + '/../resources/svm_clf'+str(eachC)
     if not os.path.exists(filename):
         from sklearn.svm import SVC
-        from sklearn.model_selection import GridSearchCV
-        parameters  = {'kernel':('linear', 'rbf', 'sigmoid')}
-        svm = SVC(C=eachC)
-        clf = GridSearchCV(estimator=svm, param_grid=parameters, n_jobs=3)
-        print(clf)
+        clf = SVC(degree=eachC, kernel='poly')
         clf.fit(feature_vector, label_train)
         with open(filename, "wb") as f:
             pickle.dump(clf, f)
@@ -44,8 +40,9 @@ if __name__ == '__main__':
     filename = dir_path + '/../resources/raw_features'
     try:
         if not os.path.exists(filename):
+            from sklearn.model_selection import train_test_split
             feature_train, feature_test, label_train, label_test = train_test_split(
-                feature_list, label_list)
+                feature_list, label_list, train_size=0.75, random_state=True)
 
             with open(filename, "wb") as f:
                 pickle.dump(feature_train, f)
@@ -68,11 +65,10 @@ if __name__ == '__main__':
         silentremove(filename)
         exit(0)
 
-    f_size = 100
     filename = dir_path+ '/../resources/rec_features_1000'
     try:
         if not os.path.exists(filename):
-            p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
+            p_feature_train = get_features(feature_train,label_train)
 
             with open(filename, "wb") as f:
                 pickle.dump(p_feature_train, f)
@@ -88,20 +84,22 @@ if __name__ == '__main__':
         silentremove(filename)
         exit(0)
 
-    clf = get_svm(p_feature_train, label_train, 6)
+    f_size=1000
+    for eachC in range(3, 50, 5):
+        clf = get_svm(p_feature_train, label_train, eachC)
 
-    test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
-    label_predict = clf.predict(test_features)
+        test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
+        label_predict = clf.predict(test_features)
 
-    from sklearn.metrics import precision_score
-    precision = precision_score(label_test, label_predict, average='weighted')
+        from sklearn.metrics import precision_score
+        precision = precision_score(label_test, label_predict, average='weighted')
 
-    from sklearn.metrics import recall_score
-    recall = recall_score(label_test, label_predict, average='weighted')
+        from sklearn.metrics import recall_score
+        recall = recall_score(label_test, label_predict, average='weighted')
 
-    f1 = 2 * (precision * recall) / (precision + recall)
+        f1 = 2 * (precision * recall) / (precision + recall)
 
-    from sklearn.metrics import accuracy_score
-    accuracy = accuracy_score(label_test, label_predict)
+        from sklearn.metrics import accuracy_score
+        accuracy = accuracy_score(label_test, label_predict)
 
-    print(str(precision) + '\t' + str(recall) + '\t' + str(f1) + '\t' + str(accuracy))
+        print(str(precision) + '\t' + str(recall) + '\t' + str(f1) + '\t' + str(accuracy))
