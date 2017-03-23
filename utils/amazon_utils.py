@@ -3,6 +3,7 @@ import re
 import pickle
 import os
 import errno
+from sklearn.feature_extraction.text import CountVectorizer
 
 REGEX = re.compile("([\w][\w']*\w)")
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -95,6 +96,7 @@ def pre_process_data(data_list):
     try:
         from nltk.corpus import stopwords
         l_data_list = []
+        data_list = data_list[:, 1]
         for index in range(len(data_list)):
             each_cell = data_list[index]
             if type(each_cell) is str:
@@ -167,25 +169,34 @@ def build_vocabulary(reviews, max_features=1000):
     return vocab
 
 
-def get_bag_of_words_features(reviews, max_features=1000):
+def get_bag_of_words_features(reviews, max_features=1000, opt='training'):
 
-    features = []
-    from collections import defaultdict
-    vocabulary = build_vocabulary(reviews=reviews)
-    for each_review in reviews:
-        review_feature = []
-        state_tracker = defaultdict(int)
-        for each_word in tokenize(each_review):
-            state_tracker[each_word] += 1
+    filename = dir_path + '/../resources/'+opt+'_features'
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            features = pickle.load(f)
+            print('features are loaded')
+    else:
+        features = []
+        from collections import defaultdict
+        vocabulary = build_vocabulary(reviews=reviews, max_features=max_features)
+        for each_review in reviews:
+            review_feature = []
+            state_tracker = defaultdict(int)
+            for each_word in tokenize(each_review):
+                state_tracker[each_word] += 1
 
-        for each_word in vocabulary:
-            review_feature.append(state_tracker[each_word])
-        features.append(review_feature)
+            for each_word in vocabulary:
+                review_feature.append(state_tracker[each_word])
+            features.append(review_feature)
+        with open(filename, "wb") as f:
+            pickle.dump(features, f)
+            print(opt+' features are created')
 
     return features
 
 
-def get_features(data_list, label_list, feature_size=1000, op_type=''):
+def get_features(data_list, label_list, feature_size=1000, op_type=None):
 
     """
     Returns a feature vector after feature selection
@@ -195,11 +206,10 @@ def get_features(data_list, label_list, feature_size=1000, op_type=''):
     :param op_type: the type of operation performed
     :return: feature vector of size feature_size
     """
-
-    r_indices = get_label_indices(label_list)
+    op_type = 'training' if op_type is None else op_type
 
     try:
-        filename = dir_path + '/../resources/'+op_type+ 'amazon_datalist'
+        filename = dir_path + '/../resources/'+op_type+ '_amazon_datalist'
         if os.path.exists(filename):
             with open(filename, "rb") as f:
                 l_data_list = pickle.load(f)
@@ -214,7 +224,7 @@ def get_features(data_list, label_list, feature_size=1000, op_type=''):
         silentremove(filename)
         exit(0)
 
-    return get_bag_of_words_features(reviews=l_data_list)
+    return get_bag_of_words_features(reviews=l_data_list, opt=op_type)
 
 
 def get_word_freq(data_list, r_indices, feature_size):
