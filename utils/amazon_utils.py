@@ -91,34 +91,6 @@ def get_unique_class_vocabulary(vocabulary_list):
     return vocab, min([len(each_list) for each_list in vocab])
 
 
-def build_vocabulary(data_list, r_indices, feature_size):
-    """
-    Builds a vocabulary based on the indices of each catergory
-    :param data_list:
-    :param r_indices:
-    :param feature_size:
-    :return:
-    """
-
-    cur_vocabulary = []
-    for index in range(0, 5):
-        word_freq = get_word_freq(data_list, r_indices[index], feature_size)
-        cur_vocabulary.append([each for each in word_freq.keys()])
-
-    cur_vocabulary, feature_size = get_unique_class_vocabulary(cur_vocabulary)
-    vocabulary = []
-    for index in range(0,5):
-        tmp_vocab = cur_vocabulary[index][0: feature_size]
-        for each in tmp_vocab :
-            if each not in vocabulary:
-                vocabulary.append(each)
-
-    vocab_dic = {}
-    for each_value, index in zip(vocabulary, range(len(vocabulary))):
-        vocab_dic[each_value] = index
-    return vocab_dic
-
-
 def pre_process_data(data_list):
     try:
         from nltk.corpus import stopwords
@@ -164,7 +136,56 @@ def pre_process_data(data_list):
     return l_data_list
 
 
-def get_features(data_list, label_list, feature_size=500, op_type=''):
+def build_vocabulary(reviews, max_features=1000):
+    filename = dir_path+'/../resources/bagofwords_vocabulary'
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            vocab = pickle.load(f)
+            print('vocabulary is loaded')
+    else:
+        from collections import defaultdict
+        vocab_counter = defaultdict(int)
+        for each_review in reviews:
+            for each_word in tokenize(each_review):
+                vocab_counter[each_word] += 1
+        dict_tracker = dict()
+
+        counts = list()
+        for key, value in vocab_counter.items():
+            dict_tracker[value] = key
+            counts.append(value)
+
+        sorted(counts, reverse=True)
+        if len(counts) < max_features:
+            raise ValueError('possibly empty vocabulary or unable to extract '+str(max_features)+ ' features')
+        vocab = [dict_tracker[each_count] for each_count in counts[:max_features]]
+
+        with open(filename, "wb") as f:
+            pickle.dump(vocab, f)
+            print('vocabulary is created')
+
+    return vocab
+
+
+def get_bag_of_words_features(reviews, max_features=1000):
+
+    features = []
+    from collections import defaultdict
+    vocabulary = build_vocabulary(reviews=reviews)
+    for each_review in reviews:
+        review_feature = []
+        state_tracker = defaultdict(int)
+        for each_word in tokenize(each_review):
+            state_tracker[each_word] += 1
+
+        for each_word in vocabulary:
+            review_feature.append(state_tracker[each_word])
+        features.append(review_feature)
+
+    return features
+
+
+def get_features(data_list, label_list, feature_size=1000, op_type=''):
 
     """
     Returns a feature vector after feature selection
@@ -193,30 +214,7 @@ def get_features(data_list, label_list, feature_size=500, op_type=''):
         silentremove(filename)
         exit(0)
 
-    '''
-        Selecting the features
-    '''
-    try:
-        filename = dir_path + '/../resources/vocabulary_1000'
-        if op_type == '' and not os.path.exists(filename):
-            with open(filename, "wb") as f:
-
-                vocabulary = build_vocabulary(l_data_list,r_indices,feature_size)
-                pickle.dump(vocabulary,f)
-                print('vocabulary is created ... ')
-        else:
-            with open(filename, "rb") as f:
-                vocabulary = pickle.load(f)
-                print('vocabulary is loaded...')
-    except Exception as e:
-        print(e)
-        silentremove(filename)
-        exit(0)
-    from sklearn.feature_extraction.text import CountVectorizer
-    vectorizer = CountVectorizer(vocabulary=vocabulary, tokenizer=tokenize, min_df=0.3, max_df=0.8)
-    features = vectorizer.fit_transform(l_data_list)
-    features = features.toarray()
-    return features
+    return get_bag_of_words_features(reviews=l_data_list)
 
 
 def get_word_freq(data_list, r_indices, feature_size):
