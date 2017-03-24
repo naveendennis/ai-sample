@@ -96,7 +96,6 @@ def pre_process_data(data_list):
     try:
         from nltk.corpus import stopwords
         l_data_list = []
-        data_list = data_list[:, 1]
         for index in range(len(data_list)):
             each_cell = data_list[index]
             if type(each_cell) is str:
@@ -157,7 +156,7 @@ def build_vocabulary(reviews, max_features=1000):
             dict_tracker[value] = key
             counts.append(value)
 
-        sorted(counts, reverse=True)
+        counts = sorted(counts, reverse=True)
         if len(counts) < max_features:
             raise ValueError('possibly empty vocabulary or unable to extract '+str(max_features)+ ' features')
         vocab = [dict_tracker[each_count] for each_count in counts[:max_features]]

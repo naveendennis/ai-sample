@@ -31,7 +31,6 @@ def get_svm(feature_vector, label_train, eachC):
     return clf
 
 
-
 if __name__ == '__main__':
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -40,9 +39,8 @@ if __name__ == '__main__':
     filename = dir_path + '/../resources/raw_features'
     try:
         if not os.path.exists(filename):
-            from sklearn.model_selection import train_test_split
             feature_train, feature_test, label_train, label_test = train_test_split(
-                feature_list, label_list, train_size=0.75, random_state=True)
+                feature_list, label_list)
 
             with open(filename, "wb") as f:
                 pickle.dump(feature_train, f)
