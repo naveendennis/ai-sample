@@ -31,33 +31,7 @@ def get_decision_tree(feature_vector, label_train):
 
 
 if __name__ == '__main__':
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-
-    feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_train.csv')
-
-    from sklearn.model_selection import train_test_split
-    feature_train, feature_test, label_train, label_test = train_test_split(
-        feature_list , label_list, train_size=0.90, random_state=True)
-
-    f_size = 1000
-    filename = dir_path+ '/../resources/rec_features_1000'
-    try:
-        if not os.path.exists(filename):
-            p_feature_train = get_features(feature_train[:,1],label_train, feature_size=f_size)
-
-            with open(filename, "wb") as f:
-                pickle.dump(p_feature_train, f)
-
-            print('pickle created for features in training set...')
-
-        else:
-            with open(filename,'rb') as f:
-                p_feature_train = pickle.load(f)
-            print('pickle loaded for training features...')
-    except Exception as e:
-        print(e.with_traceback())
-        silentremove(filename)
-        exit(0)
+    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data()
 
     clf = get_decision_tree(p_feature_train, label_train)
 

@@ -3,7 +3,6 @@ import re
 import pickle
 import os
 import errno
-from sklearn.feature_extraction.text import CountVectorizer
 
 REGEX = re.compile("([\w][\w']*\w)")
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -284,3 +283,58 @@ def shuffle(feature, label):
         new_feature.append(feature[index])
         new_label.append(label[index])
     return feature, label
+
+
+def load_data():
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    from utils.read_dataset import read_amazon_csv
+    feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_train.csv')
+
+    filename = dir_path + '/../resources/raw_features'
+    try:
+        if not os.path.exists(filename):
+            feature_train, feature_test, label_train, label_test = train_test_split(
+                feature_list, label_list)
+
+            with open(filename, "wb") as f:
+                pickle.dump(feature_train, f)
+                pickle.dump(feature_test, f)
+                pickle.dump(label_train, f)
+                pickle.dump(label_test,f)
+
+            print('pickle created for raw features...')
+
+        else:
+            with open(filename, 'rb') as f:
+                feature_train = pickle.load(f)
+                feature_test = pickle.load(f)
+                label_train = pickle.load(f)
+                label_test = pickle.load(f)
+            print('pickle loaded for raw features...')
+
+    except Exception as e:
+        print(e)
+        silentremove(filename)
+        exit(0)
+
+    f_size = 1000
+    filename = dir_path+ '/../resources/rec_features_1000'
+    try:
+        if not os.path.exists(filename):
+            p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
+
+            with open(filename, "wb") as f:
+                pickle.dump(p_feature_train, f)
+
+            print('pickle created for features in training set...')
+
+        else:
+            with open(filename,'rb') as f:
+                p_feature_train = pickle.load(f)
+            print('pickle loaded for training features...')
+    except Exception as e:
+        print(e)
+        silentremove(filename)
+        exit(0)
+
+    return feature_train, label_train, feature_test, label_test, p_feature_train, f_size
