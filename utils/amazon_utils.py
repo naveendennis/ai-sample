@@ -222,7 +222,7 @@ def get_features(data_list, label_list, feature_size=1000, op_type=None):
         silentremove(filename)
         exit(0)
 
-    return get_bag_of_words_features(reviews=l_data_list, opt=op_type)
+    return get_bag_of_words_features(reviews=l_data_list, opt=op_type, max_features=feature_size)
 
 
 def get_word_freq(data_list, r_indices, feature_size):
@@ -285,7 +285,7 @@ def shuffle(feature, label):
     return feature, label
 
 
-def load_data():
+def load_data(feature_size=1000):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     from utils.read_dataset import read_amazon_csv
     feature_list, label_list = read_amazon_csv(dir_path + '/../dataset/amazon_dataset/amazon_baby_train.csv')
@@ -317,11 +317,10 @@ def load_data():
         silentremove(filename)
         exit(0)
 
-    f_size = 1000
     filename = dir_path+ '/../resources/rec_features_1000'
     try:
         if not os.path.exists(filename):
-            p_feature_train = get_features(feature_train,label_train, feature_size=f_size)
+            p_feature_train = get_features(feature_train,label_train, feature_size=feature_size)
 
             with open(filename, "wb") as f:
                 pickle.dump(p_feature_train, f)
@@ -337,4 +336,4 @@ def load_data():
         silentremove(filename)
         exit(0)
 
-    return feature_train, label_train, feature_test, label_test, p_feature_train, f_size
+    return feature_train, label_train, feature_test, label_test, p_feature_train, feature_size

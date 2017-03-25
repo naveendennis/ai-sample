@@ -49,7 +49,7 @@ if __name__ == '__main__':
     clf = SVC(C=100, kernel='poly', degree=4)
     clf.fit(feature_train, label_train)
 
-    run_with_test_set(clf)
+    # run_with_test_set(clf)
 
     """
         cross validation

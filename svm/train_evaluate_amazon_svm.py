@@ -34,7 +34,6 @@ def get_svm(feature_vector, label_train, eachC):
 if __name__ == '__main__':
     feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data()
 
-    f_size=1000
     clf = get_svm(p_feature_train, label_train, 6)
 
     test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
