@@ -5,7 +5,6 @@ from utils.amazon_utils import *
 def get_svm(feature_vector, label_train, eachC):
 
     """
-
     :param feature_vector:
     :param label_train:
     :param layer_size:
@@ -32,7 +31,7 @@ def get_svm(feature_vector, label_train, eachC):
 
 
 if __name__ == '__main__':
-    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data(feature_size=100)
+    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data(feature_size=500)
 
     clf = get_svm(p_feature_train, label_train, 6)
 

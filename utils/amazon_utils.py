@@ -253,7 +253,9 @@ def get_w2v_features(data_list, op_type=None, feature_size=100):
             else:
                 each_feature += [0]*100
         features.append(each_feature)
-    return features
+    from sklearn.manifold import TSNE
+    model = TSNE(n_components=feature_size)
+    return model.fit_transform(features)
 
 
 def get_features(data_list, label_list, feature_size=1000, op_type=None):
