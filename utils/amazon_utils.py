@@ -122,11 +122,8 @@ def pre_process_data(data_list):
 
                 cell_contents = [stemmer.stem(word) for word in words]
 
-                cell_dup = []
                 for each_word in cell_contents:
-                    if each_word not in cell_dup:
-                        cell_dup.append(each_word)
-                        new_cell_contents = new_cell_contents + ' ' + each_word
+                    new_cell_contents = new_cell_contents + ' ' + each_word
                 new_cell_contents = new_cell_contents.strip()
                 l_data_list.append(new_cell_contents)
             else:
@@ -136,8 +133,8 @@ def pre_process_data(data_list):
     return l_data_list
 
 
-def build_vocabulary(reviews, max_features=1000):
-    filename = dir_path+'/../resources/bagofwords_vocabulary'
+def build_vocabulary(reviews, max_features=1000, model=None):
+    filename = dir_path+'/../resources/bagofwords_vocabulary_10000'
     if os.path.exists(filename):
         with open(filename, "rb") as f:
             vocab = pickle.load(f)
@@ -156,9 +153,22 @@ def build_vocabulary(reviews, max_features=1000):
             counts.append(value)
 
         counts = sorted(counts, reverse=True)
-        if len(counts) < max_features:
-            raise ValueError('possibly empty vocabulary or unable to extract '+str(max_features)+ ' features')
-        vocab = [dict_tracker[each_count] for each_count in counts[:max_features]]
+        if model is None:
+            if len(counts) < max_features:
+                raise ValueError('possibly empty vocabulary or unable to extract '+str(max_features)+ ' features')
+            vocab = [dict_tracker[each_count] for each_count in counts[:max_features]]
+        else:
+            vocab = []
+            counter = 0
+            for each_count in counts:
+                if counter == max_features:
+                    break;
+                try:
+                    model[dict_tracker[each_count]]
+                    vocab.append(dict_tracker[each_count])
+                    counter += 1
+                except KeyError:
+                    pass
 
         with open(filename, "wb") as f:
             pickle.dump(vocab, f)
@@ -191,6 +201,58 @@ def get_bag_of_words_features(reviews, max_features=1000, opt='training'):
             pickle.dump(features, f)
             print(opt+' features are created')
 
+    return features
+
+
+def get_sentences(data_list):
+    sentences = []
+    for each_sentence in data_list:
+        if type(each_sentence) is str:
+            sentences.append([each_word for each_word in tokenize(each_sentence)])
+        else:
+            sentences.append([])
+    return sentences
+
+
+def get_model(sentences=[], op_type=None):
+    op_type = 'training' if op_type is None else op_type
+    from gensim.models import Word2Vec
+    w2v_file_name=dir_path + '/../resources/w2v_model'
+    if op_type is 'training' and not os.path.exists(w2v_file_name):
+        sentences = get_sentences(sentences)
+        model = Word2Vec(sentences=sentences)
+        pickle.dump(model,open(w2v_file_name, 'wb'))
+    else:
+        model = pickle.load(open(w2v_file_name,'rb'))
+    return model
+
+
+def get_w2v_features(data_list, op_type=None, feature_size=100):
+    op_type = 'training' if op_type is None else op_type
+    model = get_model(data_list, op_type=op_type)
+    filename = dir_path + '/../resources/' + op_type + '_amazon_datalist'
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            data_list = pickle.load(f)
+            print('data list is loaded ...')
+    else:
+        with open(filename, "wb") as f:
+            data_list = pre_process_data(data_list)
+            pickle.dump(data_list, f)
+            print('data list is created...')
+    vocabulary = build_vocabulary(data_list, max_features=feature_size, model=model)
+    features = []
+    for each_sentence in data_list:
+        each_feature = []
+        for each_vocab in vocabulary:
+            if each_vocab in each_sentence:
+                try:
+                    each_feature += model[each_vocab].tolist()
+                except KeyError:
+                    each_feature += [0]*100
+            else:
+                each_feature += [0]*100
+        features.append(each_feature)
     return features
 
 
@@ -317,23 +379,18 @@ def load_data(feature_size=1000):
         silentremove(filename)
         exit(0)
 
-    filename = dir_path+ '/../resources/rec_features_1000'
-    try:
-        if not os.path.exists(filename):
-            p_feature_train = get_features(feature_train,label_train, feature_size=feature_size)
+    filename = dir_path+ '/../resources/rec_features_10000'
+    if not os.path.exists(filename):
+        p_feature_train = get_w2v_features(feature_train, feature_size=feature_size)
 
-            with open(filename, "wb") as f:
-                pickle.dump(p_feature_train, f)
+        with open(filename, "wb") as f:
+            pickle.dump(p_feature_train, f)
 
-            print('pickle created for features in training set...')
+        print('pickle created for features in training set...')
 
-        else:
-            with open(filename,'rb') as f:
-                p_feature_train = pickle.load(f)
-            print('pickle loaded for training features...')
-    except Exception as e:
-        print(e)
-        silentremove(filename)
-        exit(0)
+    else:
+        with open(filename,'rb') as f:
+            p_feature_train = pickle.load(f)
+        print('pickle loaded for training features...')
 
     return feature_train, label_train, feature_test, label_test, p_feature_train, feature_size

@@ -13,7 +13,7 @@ def get_svm(feature_vector, label_train, eachC):
     :param learning_rate:
     :return:
     """
-    filename = dir_path + '/../resources/svm_clf_rbf_C'+str(eachC)
+    filename = dir_path + '/../resources/svm_10000_C'+str(eachC)
     if not os.path.exists(filename):
         from sklearn.svm import SVC
         clf = SVC(C=eachC, kernel='rbf', class_weight='balanced')
@@ -32,11 +32,12 @@ def get_svm(feature_vector, label_train, eachC):
 
 
 if __name__ == '__main__':
-    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data()
+    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data(feature_size=100)
 
     clf = get_svm(p_feature_train, label_train, 6)
 
-    test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
+    test_features = get_w2v_features(feature_test, feature_size=f_size, op_type='test')
+    # test_features = get_features(feature_test, label_test, feature_size=f_size, op_type='test')
     label_predict = clf.predict(test_features)
 
     from sklearn.metrics import precision_score
@@ -51,3 +52,6 @@ if __name__ == '__main__':
     accuracy = accuracy_score(label_test, label_predict)
 
     print(str(precision) + '\t' + str(recall) + '\t' + str(f1) + '\t' + str(accuracy))
+    from sklearn.model_selection import cross_val_score
+    scores = cross_val_score(clf, feature_test, label_test, cv=3)
+    print(sum(scores)/3)

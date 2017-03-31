@@ -46,7 +46,7 @@ if __name__ == '__main__':
     from sklearn.svm import SVC
     train_features = np.array([[]])
 
-    clf = SVC(C=100, kernel='poly', degree=4)
+    clf = SVC(C=6, kernel='poly', gamma=1/64, degree=6)
     clf.fit(feature_train, label_train)
 
     # run_with_test_set(clf)
@@ -54,7 +54,9 @@ if __name__ == '__main__':
     """
         cross validation
     """
-
+    from sklearn.model_selection import cross_val_score
+    scores = cross_val_score(clf, feature_test, label_test, cv=5)
+    print(sum(scores)/5)
     label_predict = clf.predict(feature_test)
 
     from sklearn.metrics import precision_score
@@ -69,4 +71,3 @@ if __name__ == '__main__':
     accuracy = accuracy_score(label_test, label_predict)
 
     print(str(precision)+'\t'+ str(recall)+'\t' +str(f1)+'\t'+ str(accuracy))
-    print()
