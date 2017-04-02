@@ -242,7 +242,13 @@ def get_w2v_features(data_list, op_type=None, feature_size=100):
             print('data list is created...')
     vocabulary = build_vocabulary(data_list, max_features=feature_size, model=model)
     features = []
-    for each_sentence in data_list:
+    cache_filename = dir_path + '/../resources/' + op_type + '_cached_counter'
+    if not os.path.exists(cache_filename):
+        current_index = 0
+    else:
+        current_index = pickle.load(open(cache_filename, 'rb'))
+    revised_datalist = data_list[current_index:]
+    for each_sentence in revised_datalist:
         each_feature = []
         for each_vocab in vocabulary:
             if each_vocab in each_sentence:
@@ -253,6 +259,8 @@ def get_w2v_features(data_list, op_type=None, feature_size=100):
             else:
                 each_feature += [0]*100
         features.append(each_feature)
+        current_index += 1
+        pickle.dump(current_index, open(cache_filename, 'wb'))
     from sklearn.manifold import TSNE
     model = TSNE(n_components=feature_size)
     return model.fit_transform(features)
