@@ -228,18 +228,7 @@ def get_model(sentences=[], op_type=None):
 
 
 def get_w2v_features(data_list, op_type=None, feature_size=100):
-    op_type = 'training' if op_type is None else op_type
     model = get_model(data_list, op_type=op_type)
-    filename = dir_path + '/../resources/' + op_type + '_amazon_datalist'
-    if os.path.exists(filename):
-        with open(filename, "rb") as f:
-            data_list = pickle.load(f)
-            print('data list is loaded ...')
-    else:
-        with open(filename, "wb") as f:
-            data_list = pre_process_data(data_list)
-            pickle.dump(data_list, f)
-            print('data list is created...')
     vocabulary = build_vocabulary(data_list, max_features=feature_size, model=model)
     features = []
     cache_filename = dir_path + '/../resources/' + op_type + '_cached_counter'
@@ -285,8 +274,8 @@ def get_features(data_list, label_list, feature_size=1000, op_type=None):
                 l_data_list = pickle.load(f)
                 print('data list is loaded ...')
         else:
+            l_data_list = pre_process_data(data_list)
             with open(filename, "wb") as f:
-                l_data_list = pre_process_data(data_list)
                 pickle.dump(l_data_list, f)
                 print('data list is created...')
     except Exception as e:
@@ -295,6 +284,7 @@ def get_features(data_list, label_list, feature_size=1000, op_type=None):
         exit(0)
 
     return get_bag_of_words_features(reviews=l_data_list, opt=op_type, max_features=feature_size)
+    # return get_w2v_features(data_list=l_data_list, op_type=op_type, feature_size=feature_size)
 
 
 def get_word_freq(data_list, r_indices, feature_size):
@@ -391,7 +381,7 @@ def load_data(feature_size=1000):
 
     filename = dir_path+ '/../resources/rec_features_10000'
     if not os.path.exists(filename):
-        p_feature_train = get_w2v_features(feature_train, feature_size=feature_size)
+        p_feature_train = get_features(feature_train, label_train, feature_size=feature_size)
 
         with open(filename, "wb") as f:
             pickle.dump(p_feature_train, f)

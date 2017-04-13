@@ -32,7 +32,7 @@ def get_decision_tree(feature_vector, label_train):
 
 if __name__ == '__main__':
 
-    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data()
+    feature_train, label_train, feature_test, label_test, p_feature_train, f_size = load_data(feature_size=1000)
 
     clf = get_decision_tree(p_feature_train, label_train)
 
